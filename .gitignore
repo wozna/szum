@@ -1,5 +1,7 @@
 .idea/
-src/networks/network_tools/__pycache__/
-src/networks/__pycache__/
+/networks/network_tools/__pycache__/
+/networks/__pycache__/
+/networks/network_tools/__pycache__/
+/data/
 
 
