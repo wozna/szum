@@ -3,5 +3,7 @@
 /networks/__pycache__/
 /networks/network_tools/__pycache__/
 /data/
+/networks/models/
+.vscode/
 
 

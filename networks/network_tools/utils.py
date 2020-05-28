@@ -5,6 +5,7 @@ import keras
 import time
 
 
+
 class Util:
 
     @staticmethod
@@ -51,6 +52,16 @@ class Util:
         sum_to_save = sum(time_to_save.times)
         file.write(str(sum_to_save))
         file.close()
+
+    @staticmethod
+    def save_plot(history, series1, series2, title, ylabel, xlabel, legend, file_name):
+        plt.plot(history.history[series1])
+        plt.plot(history.history[series2])
+        plt.title(title)
+        plt.ylabel(ylabel)
+        plt.xlabel(xlabel)
+        plt.legend(legend, loc='upper left')
+        plt.savefig(file_name)
 
 
 class TimeHistory(keras.callbacks.Callback):

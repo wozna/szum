@@ -1,50 +1,56 @@
 from keras import layers
 from keras import models
 from keras import optimizers
-from keras.applications import InceptionV3
+# Scientific Math
+import tensorflow as tf
+import tensorflow.keras as keras
+from tensorflow.keras import Input, layers
 
 
 class Network:
-    def __init__(self, setting, data):
-        self.__input_x = setting.input_x
-        self.__input_y = setting.input_y
-        self.__input_z = setting.input_z
-        self._n_classes = setting.n_classes
-        self._data = data
-        self._input_shape = (self.__input_x, self.__input_y, self.__input_z)
-        self._steps_per_epoch = self._data.train_n() // self._data.batch_size()
-        self._validation_steps_per_epoch = self._data.validate_n() // self._data.batch_size()
-        self._model = models.Sequential()
-        self._metrics = ['acc']
+    def __init__(self, label_value):
+        self.__input_shape = (8000, 1)
+        self._metrics = ['accuracy']
+        self.__loss = keras.losses.categorical_crossentropy
+        self.__optimizer = keras.optimizers.Adam(lr=0.001)
+        self.__drop_out_rate = 0.5
+        self._model = self.create_model(label_value)
 
-    def fit(self, epochs, callbacks):
-        history = self._model.fit_generator(
-            self._data.train_data(),
-            steps_per_epoch=self._steps_per_epoch,
+    def fit(self, train_wav, train_label, test_wav, test_label, epochs, batch_size, callbacks):
+        self._model.compile(loss=self.__loss,
+                      optimizer=self.__optimizer,
+                      metrics=self._metrics)
+
+        history = self._model.fit(
+            train_wav, 
+            train_label,
+            validation_data=[test_wav, test_label],
+            batch_size=batch_size,
             epochs=epochs,
-            callbacks=callbacks,
-            validation_data=self._data.validate_data(),
-            validation_steps=self._validation_steps_per_epoch, workers=16)
+            callbacks=callbacks)
         return history
-
-    def evaluate(self):
-        return self._model.evaluate_generator(self._data.test_data(), self._data.test_n() // self._data.batch_size())
-
-
-class NetworkInceptionV3(Network):
-    def __init__(self, setting, data):
-        Network.__init__(self, setting, data)
-        self.__weights = 'imagenet'
-        self.__include_top = False
-        self.__conv_base = InceptionV3(weights=self.__weights, include_top=self.__include_top,
-                                       input_shape=self._input_shape)
-        self.__loss = 'categorical_crossentropy'
-        self.__optimizer = optimizers.SGD(lr=.01, momentum=.9)
-
-    def create_model(self):
-        self.__conv_base.trainable = False
-        self._model.add(self.__conv_base)
-        self._model.add(layers.GlobalAveragePooling2D())
-        self._model.add(layers.Dense(self._n_classes, activation='softmax'))
-        self._model.compile(loss=self.__loss, optimizer=self.__optimizer, metrics=self._metrics)
-        return self._model
+    
+    def create_model(self, label_value):
+        input_tensor = Input(shape=(self.__input_shape))
+        x = layers.Conv1D(8, 11, padding='valid', activation='relu', strides=1)(input_tensor)
+        x = layers.MaxPooling1D(2)(x)
+        x = layers.Dropout(self.__drop_out_rate)(x)
+        # x = layers.Conv1D(16, 7, padding='valid', activation='relu', strides=1)(x)
+        # x = layers.MaxPooling1D(2)(x)
+        # x = layers.Dropout(self.__drop_out_rate)(x)
+        # x = layers.Conv1D(32, 5, padding='valid', activation='relu', strides=1)(x)
+        # x = layers.MaxPooling1D(2)(x)
+        # x = layers.Dropout(self.__drop_out_rate)(x)
+        # x = layers.Conv1D(64, 5, padding='valid', activation='relu', strides=1)(x)
+        # x = layers.MaxPooling1D(2)(x)
+        # x = layers.Dropout(self.__drop_out_rate)(x)
+        x = layers.Conv1D(128, 3, padding='valid', activation='relu', strides=1)(x)
+        x = layers.MaxPooling1D(2)(x)
+        x = layers.Flatten()(x)
+        x = layers.Dense(256, activation='relu')(x)
+        x = layers.Dropout(self.__drop_out_rate)(x)
+        x = layers.Dense(128, activation='relu')(x)
+        x = layers.Dropout(self.__drop_out_rate)(x)
+        output_tensor = layers.Dense(len(label_value), activation='softmax')(x)
+        model = keras.Model(input_tensor, output_tensor)
+        return model

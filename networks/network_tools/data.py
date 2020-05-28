@@ -84,7 +84,7 @@ class DataGenerator:
 class DataGeneratorSimple:
     def __init__(self):
 
-        self.__train_audio_path = 'D:\\a__a\\projects\\data\\train\\audio'
+        self.__train_audio_path = '/macierz/home/s165554/pg/szum/data/train/audio'
         self.__dirs = [f for f in os.listdir(self.__train_audio_path) if isdir(join(self.__train_audio_path, f))]
         self.__dirs.sort()
         self.__max_ratio = 0.1
@@ -107,7 +107,7 @@ class DataGeneratorSimple:
         print('unknowns_list : ', end='')
         print(self.__unknown_list)
         print('silence : _background_noise_')
-        i = 0;
+        i = 0
         self.__background = [f for f in os.listdir(join(self.__train_audio_path, '_background_noise_')) if
                              f.endswith('.wav')]
         self.__background_noise = []
