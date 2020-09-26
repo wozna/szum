@@ -1,7 +1,9 @@
+import keras
 from keras import layers
 from keras import models
 from keras import optimizers
 from keras.applications import InceptionV3
+from efficientnet.model import EfficientNetB0
 
 
 class Network:
@@ -46,5 +48,27 @@ class NetworkInceptionV3(Network):
         self._model.add(self.__conv_base)
         self._model.add(layers.GlobalAveragePooling2D())
         self._model.add(layers.Dense(self._n_classes, activation='softmax'))
-        self._model.compile(loss=self.__loss, optimizer=self.__optimizer, metrics=self._metrics)
+        self._model.compile(
+            loss=self.__loss, optimizer=self.__optimizer, metrics=self._metrics)
+        return self._model
+
+
+class NetworkEfficientNetB0(Network):
+    def __init__(self, setting, data):
+        Network.__init__(self, setting, data)
+        self.__weights = 'imagenet'
+        self.__include_top = False
+        self.__conv_base = EfficientNetB0(weights=self.__weights, include_top=self.__include_top,
+                                          input_shape=self._input_shape,  backend=keras.backend,
+                                          layers=keras.layers, models=keras.models, utils=keras.utils)
+        self.__loss = 'categorical_crossentropy'
+        self.__optimizer = optimizers.SGD(lr=.01, momentum=.9)
+
+    def create_model(self):
+        self.__conv_base.trainable = False
+        self._model.add(self.__conv_base)
+        self._model.add(layers.GlobalAveragePooling2D())
+        self._model.add(layers.Dense(self._n_classes, activation='softmax'))
+        self._model.compile(
+            loss=self.__loss, optimizer=self.__optimizer, metrics=self._metrics)
         return self._model

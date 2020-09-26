@@ -1,20 +1,22 @@
 from network_tools.utils import Util, TimeHistory
 from keras.callbacks import CSVLogger, ModelCheckpoint, LearningRateScheduler, EarlyStopping, TensorBoard
 from network_tools.data import DataGenerator
-from network_tools.networks import NetworkInceptionV3
+from network_tools.networks import NetworkInceptionV3, NetworkEfficientNetB0
 from network_tools.architecture import Architecture
 from network_tools.settings import Setting
 from contextlib import redirect_stdout
+import os
+import keras.callbacks
 
 
 class Teacher:
     def __init__(self):
-        self.__base_dir = 'data'
-        self.__network_name = 'NetworkInceptionV3_19_October'
+        self.__base_dir = '/macierz/home/s165554/pg/szum/data'
+        self.__network_name = 'NetworkEfficientNetB0'
         self.__model_path = 'models/' + self.__network_name + '/'
         self.__path_log = self.__model_path + "log.csv"
         self.__path_name = "."
-        self.__epochs = 2
+        self.__epochs = 30
 
     def __schedule(self, epoch):
         if epoch < 5:
@@ -33,17 +35,17 @@ class Teacher:
             return 0.000032
 
     def __get_callbacks(self):
+        if not os.path.exists(self.__model_path):
+            os.makedirs(self.__model_path)
         csv_logger = CSVLogger(self.__path_log, append=True, separator=';')
-        check_pointer = ModelCheckpoint(filepath=self.__model_path + self.__network_name + '.hdf5', verbose=1,
-                                        save_best_only=True)
+        check_pointer = ModelCheckpoint(filepath=self.__model_path + self.__network_name +
+                                        'model.{epoch:02d}-{val_loss:.2f}.hdf5', verbose=1,
+                                        save_best_only=False)
         lr_scheduler = LearningRateScheduler(self.__schedule)
-        early_stopping = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
+        early_stopping = EarlyStopping(
+            monitor='val_loss', mode='min', verbose=1, patience=5)
         time_callback = TimeHistory()
-        tensorboard = TensorBoard(
-                    log_dir=self.__path_log,
-                    write_graph=self.__model_path,
-                )
-        return [lr_scheduler, csv_logger, check_pointer, early_stopping, time_callback, tensorboard]
+        return [lr_scheduler, csv_logger, check_pointer, time_callback]
 
     def start(self):
         # create util
@@ -56,7 +58,7 @@ class Teacher:
         data = DataGenerator(self.__base_dir, setting)
 
         # create network and get model
-        network = NetworkInceptionV3(setting, data)
+        network = NetworkEfficientNetB0(setting, data)
         model = network.create_model()
 
         # create util for model, logging
@@ -81,7 +83,7 @@ class Teacher:
         # save model, please check file name
         Util.save_model(model, self.__path_name, test_acc)
         Util.save_history(self.__model_path, history)
-        Util.save_time(self.__model_path, callbacks[4])
+        Util.save_time(self.__model_path, callbacks[3])
 
 
 if __name__ == "__main__":

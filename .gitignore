@@ -2,4 +2,10 @@
 src/networks/network_tools/__pycache__/
 src/networks/__pycache__/
 
-
+/.vscode/
+/TUT-acoustic-scenes-2017-development.audio.1.zip?download=1
+/network_tools/__pycache__
+/networks/network_tools/__pycache__
+/noise/
+/speech_commands_v0.01.tar.gz
+/data/
