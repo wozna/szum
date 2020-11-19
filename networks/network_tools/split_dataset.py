@@ -48,12 +48,12 @@ def main(original_dataset_dir, base_dir):
         print(total_files)
         for j, file in enumerate(files):
             origin_file_path = os.path.join(path, file)
-            if j < 0.7 * total_files:
+            if j < 20:
                 file_path = os.path.join(list_train_dirs[i], file)
-            elif j < 0.85 * total_files:
+            elif j < 30:
                 file_path = os.path.join(list_validation_dirs[i], file)
-            else:
-                file_path = os.path.join(list_test_dirs[i], file)
+            # else:
+            #     file_path = os.path.join(list_test_dirs[i], file)
 
             shutil.copy(origin_file_path, file_path)
     print("finish")

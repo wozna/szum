@@ -1,7 +1,7 @@
 from network_tools.utils import Util, TimeHistory
 from keras.callbacks import CSVLogger, ModelCheckpoint, LearningRateScheduler, EarlyStopping, TensorBoard
 from network_tools.data import DataGenerator
-from network_tools.networks import NetworkInceptionV3, NetworkEfficientNetB0
+from network_tools.networks import NetworkInceptionV3, NetworkEfficientNetB0, NetworkMobileNetV2
 from network_tools.architecture import Architecture
 from network_tools.settings import Setting
 from contextlib import redirect_stdout
@@ -12,16 +12,16 @@ import keras.callbacks
 class Teacher:
     def __init__(self):
         self.__base_dir = '/macierz/home/s165554/pg/szum/data'
-        self.__network_name = 'NetworkEfficientNetB0'
+        self.__network_name = 'NetworkInceptionV3'
         self.__model_path = 'models/' + self.__network_name + '/'
         self.__path_log = self.__model_path + "log.csv"
         self.__path_name = "."
         self.__epochs = 30
 
     def __schedule(self, epoch):
-        if epoch < 5:
-            return 0.01
         if epoch < 10:
+            return 0.01
+        if epoch < 20:
             return 0.02
         else:
             return 0.004
@@ -58,7 +58,7 @@ class Teacher:
         data = DataGenerator(self.__base_dir, setting)
 
         # create network and get model
-        network = NetworkEfficientNetB0(setting, data)
+        network = NetworkInceptionV3(setting, data)
         model = network.create_model()
 
         # create util for model, logging

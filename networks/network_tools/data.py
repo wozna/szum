@@ -1,5 +1,7 @@
 import os
 from keras.preprocessing.image import ImageDataGenerator
+from keras.applications.inception_v3 import preprocess_input
+
 from efficientnet.model import EfficientNetB0
 
 
@@ -13,14 +15,16 @@ class DataGenerator:
         self.__test_dir = os.path.join(base_dir, 'evaluation')
         self.__batch_size = setting.batch_size
         self.__class_mode = 'categorical'
-        self.__train_datagen = ImageDataGenerator(rotation_range=30,
+        self.__train_datagen = ImageDataGenerator(preprocessing_function=preprocess_input,
+                                                  rotation_range=30,
                                                   width_shift_range=0.2,
                                                   height_shift_range=0.2,
                                                   shear_range=0.2,
                                                   zoom_range=0.2,
                                                   horizontal_flip=True)
 
-        self.__test_datagen = ImageDataGenerator()
+        self.__test_datagen = ImageDataGenerator(
+            preprocessing_function=preprocess_input)
 
         self.__train_generator = self.__train_datagen.flow_from_directory(
             self.__train_dir,
