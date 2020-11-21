@@ -9,3 +9,7 @@ src/networks/__pycache__/
 /noise/
 /speech_commands_v0.01.tar.gz
 /data/
+/networks/commands/
+/networks/models/
+/networks/logs/
+/networks/__pycache__/
