@@ -13,3 +13,8 @@ src/networks/__pycache__/
 /networks/models/
 /networks/logs/
 /networks/__pycache__/
+networks/network_tools/__pycache__/
+networks/__pycache__/
+networks/network_tools/__pycache__/
+NextModel/models/
+
