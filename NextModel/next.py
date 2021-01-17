@@ -14,7 +14,7 @@ for device in gpu_devices:
 import numpy as np
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
-from utils_next_2 import word2index, get_model, prepare_data, get_data, batch_generator, \
+from utils_next import word2index, get_model, prepare_data, get_data, batch_generator, \
     get_noises
 from tqdm import tqdm
 
@@ -23,14 +23,14 @@ print(index2word)
 num_classes = len(word2index)
 batch_size = 8
 epochs = 50
-speech_commands_dataset_basepath = "data_new/training"
+speech_commands_dataset_basepath = "../data/data_new/training"
 
 print("loading dataset...")
 samples = []
 classes = []
 
 train = prepare_data(get_data(speech_commands_dataset_basepath))
-noises = get_noises("noise")
+noises = get_noises("../data/noise")
 noises = np.array(noises)
 # noises = None
 # validation = prepare_data(get_data("/macierz/home/s165554/pg/szum/data/data_new/validation/"))
@@ -51,7 +51,7 @@ keras.backend.clear_session()  # clear previous model (if cell is executed more 
 
 model = get_model(num_classes)
 
-model_name = "model/model_no_noise/"
+model_name = "models/model_with_high_noise/"
 
 Path(model_name).mkdir(parents=True, exist_ok=True)
 
@@ -62,12 +62,6 @@ check_pointer = tf.keras.callbacks.ModelCheckpoint(filepath=model_name + 'model.
 csv_logger = tf.keras.callbacks.CSVLogger(model_name + 'training.log')
 
 model.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=["accuracy"])
-
-check_pointer = tf.keras.callbacks.ModelCheckpoint(filepath="models/NextModel/" + 'model_January_11_.{epoch:02d}.hdf5',
-                                                   verbose=1,
-                                                   save_best_only=False)
-
-csv_logger = tf.keras.callbacks.CSVLogger('training.log')
 
 train_gen = batch_generator(train_data, train_classes, noises, batch_size=batch_size)
 valid_gen = batch_generator(validation_data, validation_classes, noises, batch_size=batch_size)
