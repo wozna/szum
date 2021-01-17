@@ -1,4 +1,5 @@
 import tensorflow as tf
+from pathlib import Path
 
 # gpus = tf.config.experimental.list_physical_devices('GPU')
 # tf.config.experimental.set_memory_growth(gpus[0], True)
@@ -13,7 +14,7 @@ for device in gpu_devices:
 import numpy as np
 from tensorflow import keras
 from sklearn.model_selection import train_test_split
-from utils_next import word2index, get_model, prepare_data, get_data, batch_generator, \
+from utils_next_2 import word2index, get_model, prepare_data, get_data, batch_generator, \
     get_noises
 from tqdm import tqdm
 
@@ -49,6 +50,16 @@ train_data, validation_data, train_classes, validation_classes = train_test_spli
 keras.backend.clear_session()  # clear previous model (if cell is executed more than once)
 
 model = get_model(num_classes)
+
+model_name = "model/model_no_noise/"
+
+Path(model_name).mkdir(parents=True, exist_ok=True)
+
+check_pointer = tf.keras.callbacks.ModelCheckpoint(filepath=model_name + 'model.{epoch:02d}.hdf5',
+                                                    verbose=1,
+                                                    save_best_only=False)
+
+csv_logger = tf.keras.callbacks.CSVLogger(model_name + 'training.log')
 
 model.compile(optimizer='sgd', loss='sparse_categorical_crossentropy', metrics=["accuracy"])
 

@@ -9,12 +9,17 @@ src/networks/__pycache__/
 /noise/
 /speech_commands_v0.01.tar.gz
 /data/
+models/
 /networks/commands/
 /networks/models/
 /networks/logs/
+networks/submission.csv
+networks/training_12.log
+networks/training.log
 /networks/__pycache__/
 networks/network_tools/__pycache__/
 networks/__pycache__/
-networks/network_tools/__pycache__/
 NextModel/models/
+NextModel/__pycache__/
+NextModel/model/
 

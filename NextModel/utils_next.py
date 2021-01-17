@@ -81,8 +81,15 @@ def get_model(num_classes):
     model.add(keras.layers.Dense(64, activation="relu"))
 
     model.add(keras.layers.Dense(num_classes, activation='softmax'))
-
+    model.summary()
     return model
+
+
+def get_nr_noises(path, samples_nr):
+    ''' Returns paths to noise samples.'''
+    datadir = Path(path)
+    files = [str(f) for f in datadir.glob('**/*.wav') if f]
+    return files[0:samples_nr]
 
 
 def get_data(path):
@@ -131,21 +138,26 @@ def get_noises(path):
 
 def add_augmentation(command):
     # stretch command from (0.7, 1.3)
-    data = stretch(command)
-    data = change_pitch(data)
-    return data
+    # data = stretch(command)
+    # data = change_pitch(data)
+    return command
 
 
-def add_noise(command, noises):
-    noise_id = np.random.randint(0, len(noises))
-    noise = get_noise_audio(noises[noise_id])
-
-    start_ = np.random.randint(noise.shape[0] - 16000)
-    bg_slice = noise[start_: start_ + 16000]
-    wav_with_bg = command * np.random.uniform(0.8, 1.2) + \
-                  bg_slice * np.random.uniform(0, 0.5)
+def add_noise(command, noise, command_i=None, noise_i=None):
+    if noise_i is None:
+        noise_i = np.random.uniform(0, 0.5)
+    if command_i is None:
+        command_i = np.random.uniform(0.8, 1.2)
+    wav_with_bg = command * command_i + noise * noise_i
 
     return wav_with_bg
+
+
+def get_random_noise_audio(noises):
+    noise_id = np.random.randint(0, len(noises))
+    noise = get_noise_audio(noises[noise_id])
+    start_ = np.random.randint(noise.shape[0] - 16000)
+    return noise[start_: start_ + 16000]
 
 
 def get_augmented_data(paths, noises=None):
@@ -159,7 +171,8 @@ def get_augmented_data(paths, noises=None):
         wav = add_augmentation(wav)
 
         if noises is not None:
-            data.append(add_noise(wav, noises))
+            noise = get_random_noise_audio(noises)
+            data.append(add_noise(wav, noise))
         else:
             data.append(wav)
 
@@ -185,3 +198,6 @@ def batch_generator(X, y, noises=None, batch_size=16):
         data = get_augmented_data(im, noises=noises)
 
         yield np.concatenate([data]), label
+
+
+get_model(11)
