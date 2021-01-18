@@ -47,14 +47,25 @@ def audio2feature(audio):
     return features
 
 
-# load .wav-file, add some noise and compute MFCC features
-def wav2feature(wav):
-    data = wav.astype(np.float)
+def norm(data):
     # normalize data
     data -= data.mean()
     data /= np.max((data.max(), -data.min()))
     # add gaussian noise
     data += np.random.normal(loc=0.0, scale=0.025, size=data.shape)
+    return data
+
+
+def norm_Euclidean(x):
+    x /= np.sqrt(np.sum(x ** 2))
+    return x
+
+
+# load .wav-file, add some noise and compute MFCC features
+def wav2feature(wav):
+    data = wav.astype(np.float)
+    #data = norm(data)
+    data = norm_Euclidean(data)
     # compute MFCC coefficients
     features = python_speech_features.mfcc(data, samplerate=16000, winlen=0.025, winstep=0.01, numcep=20, nfilt=40,
                                            nfft=512, lowfreq=100, highfreq=None, preemph=0.97, ceplifter=22,
@@ -158,6 +169,11 @@ def get_random_noise_audio(noises):
     noise = get_noise_audio(noises[noise_id])
     start_ = np.random.randint(noise.shape[0] - 16000)
     return noise[start_: start_ + 16000]
+
+
+def get_cut_noise_audio(noise):
+    noise = get_noise_audio(noise)
+    return noise[0:16000]
 
 
 def get_augmented_data(paths, noises=None):
