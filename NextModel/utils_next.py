@@ -4,6 +4,7 @@ from pathlib import Path
 import python_speech_features
 import numpy as np
 import pandas as pd
+import noisereduce as nr
 
 word2index = {
     # core words
@@ -27,6 +28,10 @@ def get_audio(path, sample_rate=16000):
         return np.pad(wav, (16000 - wav.size, 0), mode='constant')
     else:
         return wav[0:16000]
+
+
+def reduce_noise(data):
+    return nr.reduce_noise(audio_clip=data, noise_clip=data, verbose=False)
 
 
 def get_noise_audio(path, sample_rate=16000):
@@ -64,7 +69,8 @@ def norm_Euclidean(x):
 # load .wav-file, add some noise and compute MFCC features
 def wav2feature(wav):
     data = wav.astype(np.float)
-    #data = norm(data)
+    data = reduce_noise(data)
+    # data = norm(data)
     data = norm_Euclidean(data)
     # compute MFCC coefficients
     features = python_speech_features.mfcc(data, samplerate=16000, winlen=0.025, winstep=0.01, numcep=20, nfilt=40,
@@ -156,7 +162,7 @@ def add_augmentation(command):
 
 def add_noise(command, noise, command_i=None, noise_i=None):
     if noise_i is None:
-        noise_i = np.random.uniform(0, 0.5)
+        noise_i = np.random.uniform(0.8, 2.0)
     if command_i is None:
         command_i = np.random.uniform(0.8, 1.2)
     wav_with_bg = command * command_i + noise * noise_i

@@ -29,7 +29,9 @@ num_samples_per_class = 2000
 print("loading dataset...")
 # train = prepare_data(get_data('/macierz/home/s165554/pg/szum/data/evaluation/'))
 train = prepare_data(get_data('../data/data_new/evaluation'))
-noises = get_nr_noises("../data/noise", len(train))
+train_size = len(train)
+noises = get_nr_noises("../data/noise", train_size)
+noise_size = len(noises)
 model_1 = keras.models.load_model("models/no_noise/model.09.hdf5")
 model_2 = keras.models.load_model("models/model_January_14/model.11.hdf5")
 model_3 = keras.models.load_model("models/model_January_16/model.11.hdf5")
@@ -47,8 +49,8 @@ ratios = {5.0, 4.0, 3.0, 2.0, 1.0, 0.5, 0.33, 0.25, 0.20, 0.16, 0.14}
 
 for snr_ratio in ratios:
     samples = []
-    for id, path in tqdm(enumerate(train)):
-        noise = get_cut_noise_audio(noises[id])
+    for id, path in enumerate(tqdm(train)):
+        noise = get_cut_noise_audio(noises[id % noise_size])
         command = get_audio(path)
         c = np.mean(command)
         n = np.mean(noise)
@@ -86,13 +88,14 @@ for snr_ratio in ratios:
 
             # print("%d.)\t%s\t:\t%2.1f%%" % (k + 1, index2word[i], prediction[i] * 100))
             if k == 0 and index2word[i] == index2word[classes[id]]:
-                if k == 0 and index2word[i_2] == index2word[classes[id]]:
-                    correct_2 += 1
-                if k == 0 and index2word[i_3] == index2word[classes[id]]:
-                    correct_3 += 1
+                correct_1 += 1
+            if k == 0 and index2word[i_2] == index2word[classes[id]]:
+                correct_2 += 1
+            if k == 0 and index2word[i_3] == index2word[classes[id]]:
+                correct_3 += 1
 
                 # print("-----------------------------")
-
+    print(str(snr_ratio))
     acc_1 = correct_1 / len(samples)
     print("TOP1 acc = " + str(acc_1))
     acc_2 = correct_2 / len(samples)
