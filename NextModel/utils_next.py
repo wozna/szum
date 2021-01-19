@@ -5,6 +5,7 @@ import python_speech_features
 import numpy as np
 import pandas as pd
 import noisereduce as nr
+from scipy import signal
 
 word2index = {
     # core words
@@ -205,7 +206,6 @@ def get_augmented_data(paths, noises=None):
 
     return features
 
-
 def batch_generator(X, y, noises=None, batch_size=16):
     '''
     Return a random image from X, y
@@ -222,4 +222,53 @@ def batch_generator(X, y, noises=None, batch_size=16):
         yield np.concatenate([data]), label
 
 
-get_model(11)
+def get_simple_model(shape):
+    '''Create a keras model.'''
+    model = keras.models.Sequential()
+    model.add(keras.layers.Input(shape=shape))
+    model.add(keras.layers.BatchNormalization())
+    model.add(keras.layers.Conv2D(16, (3, 3), activation='elu'))
+    model.add(keras.layers.Dropout(0.25))
+    model.add(keras.layers.MaxPooling2D((2, 2)))
+
+    model.add(keras.layers.Flatten())
+    model.add(keras.layers.Dense(32, activation='elu'))
+    model.add(keras.layers.Dropout(0.25))
+
+    # 11 because background noise has been taken out
+    model.add(keras.layers.Dense(11, activation='sigmoid'))
+    return model
+
+def get_spectogram_data(paths, noises=None):
+    data = []
+
+    for path in paths:
+        wav = get_audio(path)
+
+        if noises is not None:
+            noise = get_random_noise_audio(noises)
+            data.append(add_noise(wav, noise))
+        else:
+            data.append(wav)
+
+    # get the specgram
+    specgram = [signal.spectrogram(d, nperseg=256, noverlap=128)[
+                    2] for d in data]
+    specgram = [s.reshape(129, 124, -1) for s in specgram]
+    return specgram
+
+
+def batch_simple_generator(X, y, noises=None, batch_size=16):
+    '''
+    Return a random image from X, y
+    '''
+
+    while True:
+        # choose batch_size random images / labels from the data
+        idx = np.random.randint(0, X.shape[0], batch_size)
+        im = X[idx]
+        label = y[idx]
+
+        data = get_spectogram_data(im, noises=noises)
+
+        yield np.concatenate([data]), label
