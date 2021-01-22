@@ -40,6 +40,15 @@ def get_noise_audio(path, sample_rate=16000):
     return wav
 
 
+def get_data_and_classes(data):
+    classes = []
+    for class_name in data.word:
+        classes.append(word2index[class_name])
+    classes = np.array(classes, dtype=np.int)
+    data = np.array(data.path.values)
+    return data, classes
+
+
 # compute MFCC features from audio signal
 def audio2feature(audio):
     audio = audio.astype(np.float)
@@ -70,7 +79,7 @@ def norm_Euclidean(x):
 # load .wav-file, add some noise and compute MFCC features
 def wav2feature(wav):
     data = wav.astype(np.float)
-    data = reduce_noise(data)
+    # data = reduce_noise(data)
     # data = norm(data)
     data = norm_Euclidean(data)
     # compute MFCC coefficients
@@ -80,16 +89,15 @@ def wav2feature(wav):
     return features
 
 
-def get_model(num_classes):
+def get_model(num_classes, shape=(99, 20)):
     model = keras.models.Sequential()
 
-    model.add(keras.layers.Input(shape=(99, 20)))
+    model.add(keras.layers.Input(shape=shape))
 
-    model.add(keras.layers.Conv1D(64, kernel_size=8, activation="relu", input_shape=(99, 20)))
-    model.add(keras.layers.MaxPooling1D(pool_size=3))
+    model.add(keras.layers.Conv1D(64, kernel_size=8, activation="relu", input_shape=shape))
+    model.add(keras.layers.MaxPooling1D(pool_size=4))
 
     model.add(keras.layers.Conv1D(128, kernel_size=8, activation="relu"))
-    model.add(keras.layers.MaxPooling1D(pool_size=3))
 
     model.add(keras.layers.Conv1D(256, kernel_size=5, activation="relu"))
     model.add(keras.layers.GlobalMaxPooling1D())
@@ -163,7 +171,7 @@ def add_augmentation(command):
 
 def add_noise(command, noise, command_i=None, noise_i=None):
     if noise_i is None:
-        noise_i = np.random.uniform(0.8, 2.0)
+        noise_i = np.random.uniform(0, 2.0)
     if command_i is None:
         command_i = np.random.uniform(0.8, 1.2)
     wav_with_bg = command * command_i + noise * noise_i
@@ -191,7 +199,7 @@ def get_augmented_data(paths, noises=None):
 
     for path in paths:
         wav = get_audio(path)
-        wav = add_augmentation(wav)
+        # wav = add_augmentation(wav)
 
         if noises is not None:
             noise = get_random_noise_audio(noises)
@@ -205,6 +213,7 @@ def get_augmented_data(paths, noises=None):
     features = np.array(features)
 
     return features
+
 
 def batch_generator(X, y, noises=None, batch_size=16):
     '''
@@ -239,7 +248,36 @@ def get_simple_model(shape):
     model.add(keras.layers.Dense(11, activation='sigmoid'))
     return model
 
-def get_spectogram_data(paths, noises=None):
+
+def get_log_specgram(audio, sample_rate=16000, window_size=20,
+                     step_size=10, eps=1e-10):
+    nperseg = int(round(window_size * sample_rate / 1e3))
+    noverlap = int(round(step_size * sample_rate / 1e3))
+    _, _, spec = signal.spectrogram(audio, fs=sample_rate,
+                                    window='hann', nperseg=nperseg, noverlap=noverlap,
+                                    detrend=False)
+    return np.log(spec.T.astype(np.float32) + eps)
+
+
+def get_specgram(audio):
+    data = signal.spectrogram(audio, nperseg=256, noverlap=128)[2]
+    # print(data.shape)
+    return data
+
+
+def get_melspecgram(audio):
+    data = librosa.feature.melspectrogram(audio)
+    # print(data.shape)
+    return data
+
+
+def get_spectrogram_shape(function, audio_path):
+    wav = get_audio(audio_path)
+    data = function(wav)
+    return data.shape
+
+
+def get_spectrogram_data(paths, noises=None, spectrogram_function=get_melspecgram):
     data = []
 
     for path in paths:
@@ -252,13 +290,12 @@ def get_spectogram_data(paths, noises=None):
             data.append(wav)
 
     # get the specgram
-    specgram = [signal.spectrogram(d, nperseg=256, noverlap=128)[
-                    2] for d in data]
-    specgram = [s.reshape(129, 124, -1) for s in specgram]
+    specgram = [spectrogram_function(d) for d in data]
+    # specgram = [s.reshape(128, 32, -1) for s in specgram]
     return specgram
 
 
-def batch_simple_generator(X, y, noises=None, batch_size=16):
+def batch_simple_generator(X, y, noises=None, batch_size=16, spectrogram_function=get_melspecgram):
     '''
     Return a random image from X, y
     '''
@@ -269,6 +306,5 @@ def batch_simple_generator(X, y, noises=None, batch_size=16):
         im = X[idx]
         label = y[idx]
 
-        data = get_spectogram_data(im, noises=noises)
-
+        data = get_spectrogram_data(im, noises=noises, spectrogram_function=spectrogram_function)
         yield np.concatenate([data]), label
