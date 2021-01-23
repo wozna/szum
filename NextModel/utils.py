@@ -1,4 +1,5 @@
 import librosa
+import tensorflow as tf
 from tensorflow import keras
 from pathlib import Path
 import python_speech_features
@@ -269,6 +270,11 @@ def get_melspecgram(audio):
     data = librosa.feature.melspectrogram(audio)
     # print(data.shape)
     return data
+
+
+def get_stft(audio):
+    spectrogram = tf.abs(tf.signal.stft(audio, frame_length=255, frame_step=128))
+    return spectrogram
 
 
 def get_spectrogram_shape(function, audio_path):

@@ -52,17 +52,17 @@ def main(original_dataset_dir, base_dir):
         file_path = ""
         dir_name = os.path.basename(path)
         print(dir_name)
-        iter = 1
-        if dir_name in train_words:
-            iter = 10
+        # iter = 1
+        # if dir_name in train_words:
+        #   iter = 10
 
         for j, file in enumerate(files):
             origin_file_path = os.path.join(path, file)
-            if j < 119 * iter:
+            if j < (0.70 * total_files):
                 file_path = os.path.join(list_train_dirs[i], file)
-            elif j < 153 * iter:
+            elif j < (0.90 * total_files):
                 file_path = os.path.join(list_validation_dirs[i], file)
-            elif j < 170 * iter:
+            else:  # j < (0.70 * total_files):
                 file_path = os.path.join(list_test_dirs[i], file)
             shutil.copy(origin_file_path, file_path)
     print("finish")
