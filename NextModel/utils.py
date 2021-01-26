@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 import noisereduce as nr
 from scipy import signal
+from kapre.time_frequency import Melspectrogram, Spectrogram
+import kapre
 
 word2index = {
     # core words
@@ -261,7 +263,8 @@ def get_log_specgram(audio, sample_rate=16000, window_size=20,
 
 
 def get_specgram(audio):
-    data = signal.spectrogram(audio, nperseg=256, noverlap=128)[2]
+    data = norm(audio)
+    data = signal.spectrogram(data, nperseg=256, noverlap=128)[2]
     # print(data.shape)
     return data
 
@@ -314,3 +317,91 @@ def batch_simple_generator(X, y, noises=None, batch_size=16, spectrogram_functio
 
         data = get_spectrogram_data(im, noises=noises, spectrogram_function=spectrogram_function)
         yield np.concatenate([data]), label
+
+
+def add_wav_and_noise(paths, noises=None):
+    data = []
+    for path in paths:
+        wav = get_audio(path)
+        if noises is not None:
+            noise = get_random_noise_audio(noises)
+            data.append(add_noise(wav, noise))
+        else:
+            data.append(wav)
+    return data
+
+
+def batch_AttRNN_generator(X, y, noises=None, batch_size=16):
+    '''
+    Return a random image from X, y
+    '''
+
+    while True:
+        # choose batch_size random images / labels from the data
+        idx = np.random.randint(0, X.shape[0], batch_size)
+        im = X[idx]
+        label = y[idx]
+
+        data = add_wav_and_noise(im, noises)
+        yield np.concatenate([data]), label
+
+
+def AttRNNSpeechModel(nCategories, samplingrate=16000,
+                      inputLength=16000, rnn_func=keras.layers.LSTM):
+    # simple LSTM
+    sr = samplingrate
+    iLen = inputLength
+
+    inputs = keras.layers.Input((inputLength,), name='input')
+
+    x = keras.layers.Reshape((1, -1))(inputs)
+
+    m = Melspectrogram(n_dft=1024, n_hop=128, input_shape=(1, iLen),
+                       padding='same', sr=sr, n_mels=80,
+                       fmin=40.0, fmax=sr / 2, power_melgram=1.0,
+                       return_decibel_melgram=True, trainable_fb=False,
+                       trainable_kernel=False,
+                       name='mel_stft')
+    m.trainable = False
+
+    x = m(x)
+
+    x = kapre.utils.Normalization2D(int_axis=0, name='mel_stft_norm')(x)
+
+    # note that Melspectrogram puts the sequence in shape (batch_size, melDim, timeSteps, 1)
+    # we would rather have it the other way around for LSTMs
+
+    x = keras.layers.Permute((2, 1, 3))(x)
+
+    x = keras.layers.Conv2D(10, (5, 1), activation='relu', padding='same')(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.Conv2D(1, (5, 1), activation='relu', padding='same')(x)
+    x = keras.layers.BatchNormalization()(x)
+
+    # x = Reshape((125, 80)) (x)
+    # keras.backend.squeeze(x, axis)
+    x = keras.layers.Lambda(lambda q: keras.backend.squeeze(q, -1), name='squeeze_last_dim')(x)
+
+    x = keras.layers.Bidirectional(rnn_func(64, return_sequences=True)
+                        )(x)  # [b_s, seq_len, vec_dim]
+    x = keras.layers.Bidirectional(rnn_func(64, return_sequences=True)
+                        )(x)  # [b_s, seq_len, vec_dim]
+
+    xFirst = keras.layers.Lambda(lambda q: q[:, -1])(x)  # [b_s, vec_dim]
+    query = keras.layers.Dense(128)(xFirst)
+
+    # dot product attention
+    attScores = keras.layers.Dot(axes=[1, 2])([query, x])
+    attScores = keras.layers.Softmax(name='attSoftmax')(attScores)  # [b_s, seq_len]
+
+    # rescale sequence
+    attVector = keras.layers.Dot(axes=[1, 1])([attScores, x])  # [b_s, vec_dim]
+
+    x = keras.layers.Dense(64, activation='relu')(attVector)
+    x = keras.layers.Dense(32)(x)
+
+    output = keras.layers.Dense(nCategories, activation='softmax', name='output')(x)
+
+    model = keras.models.Model(inputs=[inputs], outputs=[output])
+
+    return model
