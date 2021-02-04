@@ -1,6 +1,9 @@
 import matplotlib
 import numpy as np
+import tensorflow as tf
 from tensorflow import keras
+physical_devices = tf.config.list_physical_devices('GPU') 
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 from pathlib import Path
 from tqdm import tqdm
 # %matplotlib inline
@@ -30,17 +33,21 @@ index2word = [word for word in word2index]
 print(index2word)
 
 print("loading dataset...")
-test = prepare_data(get_data('../data/equal/evaluation'))
+test = prepare_data(get_data('../data/data_new/evaluation'))
+test, classes = get_data_and_classes(test)
 # noises = get_nr_noises("../data/noise", len(test))
 noises = None
 with_noise = False
 shape = get_spectrogram_shape(get_specgram, test[0])
-model = get_model(shape)
+print(shape)
+
+#model = get_model(11, shape)
 path = "models/good_model_specgram/model.31.hdf5"
-model.load_weights(path)
+#model.load_weights(path)
+model = keras.models.load_model(path)
 model.summary()
 
-test, classes = get_data_and_classes(test)
+
 
 snr_ratio = 0.25
 snr = []
@@ -64,7 +71,8 @@ correct = 0
 predicted = []
 
 for id, rec in enumerate(tqdm(test)):
-    recorded_feature = np.expand_dims(rec, 0)
+    recorded_feature = get_specgram(rec)
+    recorded_feature = np.expand_dims(recorded_feature, 0)
     prediction = model.predict(recorded_feature).reshape((11,))
     prediction /= prediction.sum()
     max_class_id = prediction.argmax()
